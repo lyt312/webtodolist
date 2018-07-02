@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>vue.js创建事项清单表单代码</title> 
+
+<script src="js/jquery.min.js"></script>
+<script src="js/snow.js"></script>
+
+
+<link rel="stylesheet" href="todo.css" />
+</head>
+<body>
+<!--勾选框的样式-->
+<link href="11.css" rel="stylesheet">
+<link href="22.css" rel="stylesheet">
+
+<script src="vue.js"></script>
+<!-- 雪花背景 -->
+  <div class="snow-container"></div>
+<main id="todolist">
+  <h1>
+   	我的一天
+    <span>Have you finished?</span>
+
+  </h1>
+   <a class="zhuxiao" href="index.html"><button>注销</button></a>
+
+  <template v-if="todo.length">
+    <ul>
+      <li v-for="item in todoByStatus" stagger="5000" v-bind:class="item.done ? 'done' : ''">
+
+        <span class="label" v-if="!ifEdit" @click = "ifEdit = true">{{item.label}}</span>
+        <input v-if="ifEdit" v-model = "item.label"  @keyup.enter="ifEdit = false">
+        
+        <div class="actions">
+          <button class="btn-picto" type="button" v-on:click="markAsDoneOrUndone(item)" v-bind:aria-label="item.done ? 'Undone' : 'Done'" v-bind:title="item.done ? 'Undone' : 'Done'">
+            <i aria-hidden="true" class="material-icons">{{ item.done ? 'check_box' : 'check_box_outline_blank' }}</i>
+          </button>
+          <button class="btn-picto" type="button" v-on:click="deleteItemFromList(item)" aria-label="Delete" title="Delete">
+            <i aria-hidden="true" class="material-icons">删除</i>
+          </button>
+          
+        </div>
+      </li>
+    </ul>
+
+    <togglebutton 
+                  label="移动？"
+                  name="todosort"
+                  v-on:clicked="clickontoogle" />
+                
+  </template>
+  <p v-else class="emptylist"> 你的待办事项列表是空的。 </p>
+
+  <form name="newform" v-on:submit.prevent="addItem">
+   
+    <label for="newitem">新建清单</label>
+    <input type="text" name="newitem" id="newitem" v-model="newitem">
+    <button type="submit">新建</button>
+
+    <button type="button" onclick="changeyangshi()">更改样式</button>
+
+  </form>
+  <br>
+  <h2>搜索的分割线</h2>
+  <br>
+  <!--搜索-->
+  <div class="sousuoyangshi">
+    <input v-model="searchinfo" type="text">
+    <button @click = "ifsearch = true;search() ">搜索</button>
+    <button @click = "ifsearch = false">取消搜索</button>
+  </div>
+
+  <template v-if="ifsearch">
+    <ul>
+      <li v-for="item in searched" stagger="5000" v-bind:class="item.done ? 'done' : ''">
+        <span class="label" v-if="!ifEdit" @click = "ifEdit = true">{{item.label}}</span>
+        <input v-if="ifEdit" v-model = "item.label"  @keyup.enter="ifEdit = false">
+        <div class="actions">
+          <button class="btn-picto" type="button" v-on:click="markAsDoneOrUndone(item)" v-bind:aria-label="item.done ? 'Undone' : 'Done'" v-bind:title="item.done ? 'Undone' : 'Done'">
+            <i aria-hidden="true" class="material-icons">{{ item.done ? 'check_box' : 'check_box_outline_blank' }}</i>
+          </button>
+
+          <button class="btn-picto" type="button" v-on:click="deleteItemFromList(item)" aria-label="Delete" title="Delete">
+            <i aria-hidden="true" class="material-icons">删除</i>
+          </button>
+          
+        </div>
+      </li>
+    </ul>       
+  </template>
+  <!--搜索结束-->
+</main>
+
+<script>
+Vue.component('togglebutton', {
+  props: ['label', 'name'],
+  template: `<div class="togglebutton-wrapper" v-bind:class="isactive ? 'togglebutton-checked' : ''">
+      <label v-bind:for="name">
+        <span class="togglebutton-label">{{ label }}</span>
+        <span class="tooglebutton-box"></span>
+      </label>
+      <input v-bind:id="name" type="checkbox" v-bind:name="name" v-model="isactive" v-on:change="onToogle">
+  </div>`,
+  model: {
+    prop: 'checked',
+    event: 'change'
+  },
+  data: function() {
+    return {
+      isactive:false
+    }
+  },//显示做没做完
+  methods: {
+    onToogle: function() {
+       this.$emit('clicked', this.isactive)
+    }//在点击或关闭时触发事件，勾选表示启用，不勾选表示不用
+  
+  }
+});
+
+
+
+function toLower(text) {
+  return text.toString().toLowerCase()
+}
+
+function searchByName (items, term){
+  if (term) {
+    return items.filter(item => toLower(item.label).includes(toLower(term)))
+  }
+  return items
+}//搜索相关功能
+
+
+var todolist = new Vue({
+  el: '#todolist',
+  data: {
+    newitem:'',
+    sortByStatus:false,
+    todo: [
+      { label: "web大作业", done: true },
+      { label: "数据库", done: false },
+       { label: "概率统计", done: true },
+       { label: "毛概", done: true }
+    ],
+    /*搜索*/
+    ifsearch:false,
+    searchinfo:'',
+    searched:[],
+    /*编辑*/
+    ifEdit:false
+
+  },
+  methods: {
+    addItem: function() {
+      this.todo.push({label: this.newitem, done: false});
+      this.newitem = '';
+    },
+    markAsDoneOrUndone: function(item) {
+      item.done = !item.done;
+    },
+    deleteItemFromList: function(item) {
+      let index = this.todo.indexOf(item)
+      this.todo.splice(index, 1);
+    },
+    clickontoogle: function(active) {
+      this.sortByStatus = active;
+    },
+    search:function(){
+      this.searched = searchByName(this.todo, this.searchinfo);
+    }
+    
+  },
+  computed: {
+    todoByStatus: function() {
+
+      if(!this.sortByStatus) {
+        return this.todo;
+      }
+
+      var sortedArray = []
+      var doneArray = this.todo.filter(function(item) { return item.done; });
+      var notDoneArray = this.todo.filter(function(item) { return !item.done; });
+      
+      sortedArray = [...notDoneArray, ...doneArray];
+      return sortedArray;
+    }
+  }
+});
+function changeyangshi(){
+    x=document.getElementById("todolist")//找到元素
+    x.style.color="yellow";//更改样式
+}
+
+// 触发 id="defaultOpen" click 事件
+document.getElementById("defaultOpen").click();
+
+ 
+</script>
+
+
+</div>
+</body>
+</html>
